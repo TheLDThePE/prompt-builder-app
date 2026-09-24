@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Custom CSS: ซ่อน UI เดิม และซ่อน Hosted with Streamlit Badge อย่างเด็ดขาด
+# 2. Custom CSS: ซ่อน UI เดิมอย่างปลอดภัย ไม่กระทบการแสดงผลหลักของเว็บ
 hide_and_custom_style = """
     <style>
     /* ซ่อน Streamlit UI หลัก */
@@ -17,29 +17,16 @@ hide_and_custom_style = """
     footer {visibility: hidden !important;}
     .stAppDeployButton {display: none !important;}
 
-    /* ซ่อน Hosted with Streamlit Badge / Mascot / Crown ลอยขวาล่างทุกรูปแบบ */
-    [data-testid="stStatusWidget"],
-    [data-testid="stDecoration"],
-    [data-testid="stToolbar"],
-    .stAppViewBlockContainer + div,
+    /* ซ่อน Streamlit Community Toolbar & Status Widget */
+    [data-testid="stStatusWidget"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+
+    /* ซ่อน Viewer Badges โดยตรง */
     div[class*="viewerBadge"],
-    div[class*="styles_viewerBadge"],
-    a[class*="viewerBadge"],
-    a[href*="streamlit.io/cloud"],
-    a[href*="streamlit.app"],
-    div[data-aria-clear="true"],
-    .stApp > div:last-child > div:last-child {
+    a[class*="viewerBadge"] {
         display: none !important;
         visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
-
-    /* ซ่อน Container ลอยด้านล่างขวาของเซิร์ฟเวอร์ Streamlit */
-    div[style*="position: fixed"][style*="bottom: 0"],
-    div[style*="position: fixed"][style*="right: 0"],
-    div[style*="z-index: 999999"] {
-        display: none !important;
     }
 
     /* บังคับแสดงเฉพาะ Developer Credit ของเรา */
@@ -54,7 +41,7 @@ hide_and_custom_style = """
         padding: 5px 14px !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
-        z-index: 9999999 !important;
+        z-index: 99999 !important;
         display: block !important;
     }
 
@@ -109,7 +96,6 @@ with header_col1:
 with header_col2:
     btn_col1, btn_col2 = st.columns([0.5, 0.5])
     with btn_col1:
-        # ปุ่ม Help เปิด Modal
         if st.button("❓ วิธีการใช้งาน (Help)", use_container_width=True):
             show_help_modal()
     with btn_col2:
@@ -241,7 +227,6 @@ col1, col2 = st.columns([1, 1], gap="large")
 with col1:
     st.subheader("🎛️ 1. ตั้งค่าความต้องการ (Form Inputs)")
 
-    # หัวข้อ Input + ปุ่ม ไอคอน (i)
     lbl_col1, lbl_col2 = st.columns([0.85, 0.15])
     with lbl_col1:
         st.markdown("**📝 หัวข้อ / เนื้อหาหลักที่ต้องการสรุป:**")
