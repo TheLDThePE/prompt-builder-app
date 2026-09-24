@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Custom CSS
+# 2. Custom CSS: ซ่อน UI เดิม, ซ่อน Viewer Badges/Icons มุมขวาล่าง, และปรับ Padding
 hide_and_custom_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -16,6 +16,18 @@ hide_and_custom_style = """
     footer {visibility: hidden;}
     .stAppDeployButton {display:none;}
 
+    /* ซ่อน Streamlit Community Watermark / Crown & Mascot Badges ขวาล่าง */
+    [data-testid="stStatusWidget"] {display: none !important;}
+    .viewerBadge_container__1A53N,
+    .viewerBadge_link__1S137,
+    [data-testid="stDecoration"],
+    [data-testid="stToolbar"],
+    div[class*="viewerBadge"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* ลดระยะเว้นขอบบนของหน้าเว็บให้กระชับขึ้น */
     .block-container {
         padding-top: 1.5rem !important;
         padding-bottom: 3rem !important;
