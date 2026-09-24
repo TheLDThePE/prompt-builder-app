@@ -1,164 +1,332 @@
 import streamlit as st
+from st_copy_to_clipboard import st_copy_to_clipboard
 
-# 1. Page Config ต้องอยู่บรรทัดแรกสุด
-st.set_page_config(page_title="NotebookLM Prompt Builder", page_icon="🎨", layout="wide")
+# 1. ตั้งค่าหน้าตาของ Streamlit App และใส่ favicon.png
+st.set_page_config(
+    page_title="NotebookLM Prompt Builder",
+    page_icon="favicon.png",
+    layout="wide"
+)
 
-# แสดงรูปภาพโลโก้บริษัทบนหน้าเว็บ (ถ้ามีไฟล์ logo.png ในโฟลเดอร์)
-try:
-    st.image("logo.png", width=250)
-except Exception:
-    pass
+# 2. Custom CSS
+hide_and_custom_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    .stAppDeployButton {display:none;}
 
-# Title & Caption
-st.title("🎨 NotebookLM Prompt Builder for Corporate Infographics")
-st.caption("แปลงโจทย์งานของคุณให้กลายเป็น Master Prompt สไตล์ต่างๆ พร้อม CI Branding เป๊ะๆ")
+    .block-container {
+        padding-top: 1.5rem !important;
+        padding-bottom: 3rem !important;
+    }
 
-# Layout Split: 2 Columns
-col_form, col_output = st.columns([1, 1], gap="large")
+    .developer-credit {
+        position: fixed;
+        bottom: 12px;
+        right: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #555555;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 5px 14px;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        z-index: 9999;
+    }
+    </style>
+"""
+st.markdown(hide_and_custom_style, unsafe_allow_html=True)
 
-# ==========================================
-# ฝั่งซ้าย: FORM CONTROLS (Dropdown & Inputs)
-# ==========================================
-with col_form:
-    st.header("1. ตั้งค่าความต้องการ (Form Inputs)")
+# ---------------------------------------------------------
+# 💡 ฟังก์ชันระบบ Pop-up (Modal Dialogs)
+# ---------------------------------------------------------
+@st.dialog("📘 คู่มือและการใช้งาน NotebookLM Prompt Builder")
+def show_help_modal():
+    st.markdown("""
+    ### 🎯 วัตถุประสงค์
+    เครื่องมือช่วยสร้าง **Master Prompt** เพื่อให้พนักงาน MinebeaMitsumi สามารถสร้างภาพ Infographic ผ่าน **NotebookLM** ได้อย่างรวดเร็ว สวยงาม และถูกต้องตามมาตรฐาน **Corporate Identity (CI)** ของบริษัท
 
-    # 1.1 Content Topic พร้อม Tooltip คำอธิบาย
+    ---
+    ### 🚀 ขั้นตอนการใช้งานง่ายๆ (3 Steps)
+    1. **ตั้งค่าความต้องการ (Form Inputs):** พิมพ์หัวข้อเรื่องที่ต้องการสรุป เลือกสไตล์ภาพ (Standard / Custom) และปรับแต่งโลโก้ CI
+    2. **คัดลอก Master Prompt:** กดปุ่ม **`⚡ คัดลอก Master Prompt`** ทางฝั่งขวา
+    3. **นำไปสั่งงานใน NotebookLM:** เปิดโปรแกรม NotebookLM นำ Prompt ที่คัดลอกไป Paste ในช่องสั่งงานเพื่อรับภาพ Infographic ได้ทันที!
+    """)
+
+@st.dialog("💡 คำแนะนำการระบุหัวข้อ (Topic Input Guide)")
+def show_topic_guide_modal():
+    st.markdown("""
+    ### 📝 รายละเอียดการระบุหัวข้อ / เนื้อหาหลัก
+
+    * **กรณีพิมพ์ระบุหัวข้อ:**
+      AI ใน NotebookLM จะดึงเฉพาะเนื้อหาที่เกี่ยวข้องกับหัวข้อนั้นๆ จากเอกสารมาสรุปและวาดเป็น Infographic เจาะจงเรื่องนั้นเป็นพิเศษ
+
+    * **กรณีเว้นว่างไว้ (`[Insert Topic]`):**
+      AI จะอ่านเอกสารทั้งหมดที่คุณอัปโหลดใน NotebookLM แล้วเลือกสรุปภาพรวมทั้งหมดของเนื้อหาให้โดยอัตโนมัติ
+    """)
+
+# ---------------------------------------------------------
+# 3. ส่วน Header แสดงโลโก้บริษัท, ปุ่ม Help (?) และ Credit
+# ---------------------------------------------------------
+header_col1, header_col2 = st.columns([0.60, 0.40])
+
+with header_col1:
+    try:
+        st.image("logo.png", width=420)
+    except Exception:
+        pass
+
+with header_col2:
+    btn_col1, btn_col2 = st.columns([0.5, 0.5])
+    with btn_col1:
+        # ปุ่ม Help เปิด Modal
+        if st.button("❓ วิธีการใช้งาน (Help)", use_container_width=True):
+            show_help_modal()
+    with btn_col2:
+        st.markdown(
+            """
+            <div style="text-align: right; padding-top: 2px;">
+                <span style="background-color: #EBF3FE; color: #1E56A0; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 13px;">
+                    🚀 Trial Version
+                </span>
+                <div style="font-size: 12px; color: #666666; margin-top: 4px; font-weight: 500;">
+                    © Developed by Suttichai K.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+# ส่วนแสดง Title พร้อมไอคอน
+title_col1, title_col2 = st.columns([0.03, 0.97], gap="small")
+with title_col1:
+    try:
+        st.image("title_icon.png", width=38)
+    except Exception:
+        pass
+with title_col2:
+    st.markdown("<h1 style='padding-top: 0px; margin-top: -8px; font-size: 1.95rem;'>NotebookLM Prompt Builder for Corporate Infographics</h1>", unsafe_allow_html=True)
+
+st.caption("ระบบกำหนดค่าโครงสร้าง Master Prompt และการคุมธีม Corporate Identity (CI) สำหรับ NotebookLM")
+
+# ---------------------------------------------------------
+# 4. Dictionary เก็บข้อมูลสไตล์
+# ---------------------------------------------------------
+CUSTOM_STYLES = {
+    "Corporate Executive (เรียบหรู, มินิมอล, เน้นข้อมูล)": {
+        "name_en": "Corporate Executive",
+        "desc": "Clean layout, minimalist background, bold data typography, precise structured graphics.",
+        "image": "style_1.png"
+    },
+    "Anime Cinematic (แสง Sunset, ดราม่าติก, แสงเงาจัด)": {
+        "name_en": "Anime Cinematic",
+        "desc": "Capture a specific moment with high emotion: relieved and proud expressions. Dramatic lighting contrast: golden hour sunset, spotlight vs darkness, glowing holographic details.",
+        "image": "style_2.png"
+    },
+    "Chalkboard Educational (ชอล์กเขียนกระดานดำ, ลุคการเรียนรู้)": {
+        "name_en": "Chalkboard Educational",
+        "desc": "Chalkboard textures, hand-drawn vector diagrams, white and colored chalk lines, clean organized layouts.",
+        "image": "style_3.png"
+    },
+    "Isometric 3D Tech (ภาพสามมิติ 3D, ลุคล้ำสมัย)": {
+        "name_en": "Isometric 3D Tech",
+        "desc": "3D isometric layout, smooth gradients, glowing data paths, modern technological UI aesthetic.",
+        "image": "style_4.png"
+    },
+    "Flat Design 2.5D (ภาพเวกเตอร์แบบเรียบ, สีสันชัดเจน)": {
+        "name_en": "Flat Design 2.5D",
+        "desc": "Clean vector art, subtle depth shadows, bold color accents, modern business infographic style.",
+        "image": "style_5.png"
+    },
+    "Futuristic HUD Dashboard (แดชบอร์ดไซเบอร์, ดาร์กโหมด)": {
+        "name_en": "Futuristic HUD Dashboard",
+        "desc": "Dark mode interface, cyan and neon blue grid displays, high-tech data visualization charts, sleek futuristic HUD elements.",
+        "image": "style_6.png"
+    },
+    "Minimalist Sketch (งานวาดลายเส้นสเก็ตช์, มินิมอลเรียบง่าย)": {
+        "name_en": "Minimalist Sketch",
+        "desc": "Hand-drawn ink line art, clean white space, subtle watercolor accent highlights, clear typographic hierarchy.",
+        "image": "style_7.png"
+    }
+}
+
+STANDARD_STYLES = {
+    "Kawaii (น่ารัก สไตล์การ์ตูนญี่ปุ่น)": {
+        "name_en": "Kawaii",
+        "desc": "Cute Japanese character illustrations, soft pastel color palette, friendly approach, playful graphics.",
+        "image": "standard_1.png"
+    },
+    "Clay (งานปั้นดินน้ำมัน 3 มิติ)": {
+        "name_en": "Clay",
+        "desc": "Tactile claymation aesthetic, smooth 3D clay figures, soft shadow depth, playful corporate graphics.",
+        "image": "standard_2.png"
+    },
+    "SketchNote (ลายเส้นสเก็ตช์เหมือนจดโน้ต)": {
+        "name_en": "SketchNote",
+        "desc": "Hand-drawn visual notes, sketchy line art icons, informal educational diagrams, storyboard layout.",
+        "image": "standard_3.png"
+    },
+    "Anime (ลายเส้นอนิเมะ)": {
+        "name_en": "Anime",
+        "desc": "Japanese anime style illustrations, dynamic composition, vibrant visual storytelling.",
+        "image": "standard_4.png"
+    },
+    "Editorial (รายงานบรรณาธิการ สื่อสารองค์กร)": {
+        "name_en": "Editorial",
+        "desc": "Editorial graphic design style, structured business report layout, clear information hierarchy, high-end publication aesthetics.",
+        "image": "standard_5.png"
+    },
+    "Instructional (ขั้นตอนการทำงาน คู่มือ How-To)": {
+        "name_en": "Instructional",
+        "desc": "Step-by-step process flow, clear visual guides, modern iconography, structured instruction layout.",
+        "image": "standard_6.png"
+    },
+    "BentoGrid (จัดบล็อกเป็นช่องๆ สไตล์โมเดิร์น)": {
+        "name_en": "BentoGrid",
+        "desc": "Modern UI bento box grid layout, clean card-based information structure, rounded corners, sleek data boxes.",
+        "image": "standard_7.png"
+    },
+    "Bricks (ตัวต่อบล็อกสามมิติ)": {
+        "name_en": "Bricks",
+        "desc": "Voxel art, 3D brick building block aesthetics, structured modular graphics.",
+        "image": "standard_8.png"
+    },
+    "Scientific (แผนภูมิวิชาการ ข้อมูลเชิงวิเคราะห์)": {
+        "name_en": "Scientific",
+        "desc": "Analytical charts, scientific data visualization, precise technical diagrams, clean academic presentation format.",
+        "image": "standard_9.png"
+    },
+    "Professional (ลุคธุรกิจแบบเป็นทางการ)": {
+        "name_en": "Professional",
+        "desc": "Clean corporate presentation format, highly structured professional data visualization, formal executive layout.",
+        "image": "standard_10.png"
+    }
+}
+
+# ---------------------------------------------------------
+# 5. UI Layout & Form Inputs
+# ---------------------------------------------------------
+col1, col2 = st.columns([1, 1], gap="large")
+
+with col1:
+    st.subheader("🎛️ 1. ตั้งค่าความต้องการ (Form Inputs)")
+
+    # หัวข้อ Input + ปุ่ม ไอคอน (i)
+    lbl_col1, lbl_col2 = st.columns([0.85, 0.15])
+    with lbl_col1:
+        st.markdown("**📝 หัวข้อ / เนื้อหาหลักที่ต้องการสรุป:**")
+    with lbl_col2:
+        if st.button("ℹ️ คำแนะนำ", key="btn_topic_info"):
+            show_topic_guide_modal()
+
     topic = st.text_area(
-        "📌 หัวข้อ / เนื้อหาหลักที่ต้องการสรุป:",
-        placeholder="เช่น สรุปกลไกการทำลายหลอดเลือดออกเป็น 3 ระยะ หรือ สรุปผลการอบรม GWS Workshop",
-        height=100,
-        help=(
-            "💡 **คำแนะนำในการกรอกช่องนี้:**\n\n"
-            "ช่องนี้ทำหน้าที่เป็น **Focus Area** สำหรับตีกรอบให้ AI รู้ว่าต้องเน้นประเด็นไหนจากไฟล์ใน NotebookLM\n\n"
-            "- **เน้นจุดสำคัญ:** เช่น *'เน้นเฉพาะระยะอักเสบเรื้อรัง'*[cite: 17]\n"
-            "- **เน้นโครงสร้าง:** เช่น *'จัดกลุ่มสรุปออกเป็น 3 ระยะ'*[cite: 17]\n"
-            "- **หากปล่อยว่างไว้:** AI จะสรุปภาพรวมทั้งหมดของเอกสารให้โดยอัตโนมัติ"
-        )
+        label="topic_input",
+        label_visibility="collapsed",
+        placeholder="เช่น สรุปกลไกการทำลายหลอดเลือดออกเป็น 3 ระยะ หรือ สรุปผลการอบรม GWS Workshop"
     )
 
-    # 1.2 Visual Style & Emotion
-    st.subheader("🎬 Visual Style & Emotion")
-    visual_style = st.selectbox(
-        "เลือกสไตล์ภาพ (Visual Staging):",
-        [
-            "Anime Cinematic (แสง Sunset, ดรามาติก, แสงเงาจัด)",
-            "Corporate Executive (เรียบหรู, มินิมอล, เน้นข้อมูล)",
-            "Cyberpunk Tech (นีออน, ดิจิทัล, ล้ำสมัย)",
-            "3D Isomorphic Vector (สไตล์สามมิติ มินิมอล คล้ายโมเดลจำลอง)",
-            "Flat Infographic Modern (เน้นเวกเตอร์สีสดใส อ่านง่ายแบบนิตยสาร)",
-            "Hand-Drawn Chalkboard (สไตล์วาดกระดานดำ อารมณ์การสอน/สัมมนา)",
-            "Vintage Scientific Blueprint (สไตล์พิมพ์เขียวเทคนิค สีน้ำเงิน-ขาว)"
-        ]
+    st.markdown("### 🎨 Visual Style Category")
+
+    style_category = st.radio(
+        "เลือกประเภทของสไตล์ภาพ:",
+        ["📊 Standard NotebookLM Presets (10 สไตล์มาตรฐาน)", "✨ Custom Corporate Styles (7 สไตล์เฉพาะองค์กร)"],
+        horizontal=False
     )
 
-    # 1.3 Corporate Identity (CI) Settings
-    st.subheader("🏢 Corporate Identity (Branding)")
-
-    enable_logo = st.checkbox("ใส่โลโก้บริษัท (Company Logo)", value=True)
-
-    if enable_logo:
-        logo_pos = st.radio(
-            "ตำแหน่งโลโก้ (Logo Position):",
-            ["Top-Right Corner (ขวาบน) [Standard]", "Top-Left Corner (ซ้ายบน)", "Bottom-Right Corner (ขวาล่าง)"],
-            horizontal=True
-        )
-        logo_size = st.select_slider(
-            "ขนาดโลโก้ (Logo Size):",
-            options=["Compact (เล็กกำลังดี)", "Medium (มาตรฐาน)", "Large (เด่นชัด)"]
-        )
-
-    add_accent_line = st.checkbox("ใส่แถบเส้นสี Corporate (Red/Blue Accent Line Below Header)", value=True)
-    add_footer = st.checkbox("ใส่ Footer Text ('MinebeaMitsumi Confidential')", value=True)
-
-# ==========================================
-# ฝั่งขวา: PROMPT GENERATOR ENGINE & OUTPUT
-# ==========================================
-with col_output:
-    st.header("2. Master Prompt (นำไป Paste ใน NotebookLM)")
-
-    # 1. Persona & Role
-    role_prompt = "You are an expert Visual Director, Screenwriter, and Graphic Designer.\n\n"
-
-    # 2. Main Instruction
-    task_prompt = f"Please generate a compelling, professional infographic based on the uploaded sources regarding: '{topic if topic else '[Insert Topic]'}'.\n\n"
-
-    # 3. Visual Staging (Conditional)
-    if "Anime" in visual_style:
-        style_prompt = (
-            "**Visual Staging (Anime Cinematic):**\n"
-            "- Capture a specific moment with high emotion: relieved and proud expressions.\n"
-            "- Dramatic lighting contrast: golden hour sunset, spotlight vs darkness, glowing holographic details.\n\n"
-        )
-    elif "Corporate" in visual_style:
-        style_prompt = (
-            "**Visual Staging (Corporate Executive):**\n"
-            "- Clean layout, minimalist background, bold data typography, precise structured graphics.\n\n"
-        )
-    elif "Cyberpunk" in visual_style:
-        style_prompt = (
-            "**Visual Staging (Cyberpunk Tech):**\n"
-            "- Futuristic UI elements, glowing neon accents, dark tech background.\n\n"
-        )
-    elif "3D" in visual_style:
-        style_prompt = (
-            "**Visual Staging (3D Isomorphic Vector):**\n"
-            "- Clean 3D isometric perspective, smooth lighting, modern clay/toy-like minimal model style.\n\n"
-        )
-    elif "Flat" in visual_style:
-        style_prompt = (
-            "**Visual Staging (Vibrant Modern Infographic):**\n"
-            "- Bold colorful vector graphics, vibrant modern pop color palette with rich contrast.\n"
-            "- Floating glassmorphism cards with soft glowing drop-shadows.\n"
-            "- Dynamic isometric 3D/2.5D visual accents and eye-catching graphic elements.\n\n"
-        )
-    elif "Chalkboard" in visual_style:
-        style_prompt = (
-            "**Visual Staging (Hand-Drawn Chalkboard):**\n"
-            "- Dark chalkboard texture background, detailed hand-drawn chalk illustrations, educational presentation feel.\n\n"
-        )
-    elif "Blueprint" in visual_style:
-        style_prompt = (
-            "**Visual Staging (Vintage Scientific Blueprint):**\n"
-            "- Deep blue grid blueprint paper texture, precise white technical drawing lines, schematic diagram aesthetic.\n\n"
-        )
+    if "Standard NotebookLM" in style_category:
+        selected_style_dict = STANDARD_STYLES
     else:
-        style_prompt = f"**Visual Staging:** {visual_style}\n\n"
+        selected_style_dict = CUSTOM_STYLES
 
-    # 4. Branding Rules (CI)
-    ci_prompt = "**Corporate Branding Guidelines:**\n"
+    selected_style_label = st.selectbox(
+        "เลือกสไตล์ภาพ (Visual Staging):",
+        options=list(selected_style_dict.keys())
+    )
 
-    if enable_logo:
-        # ตรวจสอบตำแหน่งโลโก้
-        if "Top-Left" in logo_pos:
-            pos_text = "Top-Left Corner"
-        elif "Bottom-Right" in logo_pos:
-            pos_text = "Bottom-Right Corner"
-        else:
-            pos_text = "Top-Right Corner"
+    st.markdown("### 🛡️ Corporate Identity (Branding)")
+    use_logo = st.checkbox("ใส่โลโก้บริษัท (Company Logo)", value=True)
 
-        # ตรวจสอบขนาดโลโก้
-        size_text = "compact and non-intrusive" if "Compact" in logo_size else ("large and prominent" if "Large" in logo_size else "standard")
+    logo_pos = st.radio(
+        "ตำแหน่งโลโก้ (Logo Position):",
+        ["Top-Right Corner (ขวาบน) [Standard]", "Top-Left Corner (ซ้ายบน)", "Bottom-Right Corner (ขวาล่าง)"],
+        horizontal=True
+    )
 
-        # ระบุรายละเอียดโลโก้ 2 บรรทัด (เอาอักขระ [cite] ออกเรียบร้อยแล้ว)
-        ci_prompt += (
-            f"- **Logo Placement & Design:** Place the official 'MinebeaMitsumi' corporate logo at the **{pos_text}** in a {size_text} size.\n"
-            f"  - **Logo Structure (Two Lines):**\n"
-            f"    1. **Top Line:** Bold, italicized deep-blue text reading **'MinebeaMitsumi'**.\n"
-            f"    2. **Bottom Line (Tagline):** Smaller red and blue italicized text directly underneath reading **'Passion to Create Value through Difference'**.\n"
-        )
+    logo_size = st.select_slider(
+        "ขนาดโลโก้ (Logo Size):",
+        options=["Compact (เล็กกำลังดี)", "Medium (มาตรฐาน)", "Large (เด่นชัด)"],
+        value="Compact (เล็กกำลังดี)"
+    )
 
-    if add_accent_line:
-        ci_prompt += "- **Header Line:** Include a thin horizontal **Red and Blue corporate accent line** right below the header.\n"
+    use_header_line = st.checkbox("ใส่แถบเส้นสี Corporate (Red/Blue Accent Line Below Header)", value=True)
+    use_footer = st.checkbox("ใส่ Footer Text ('MinebeaMitsumi Confidential')", value=True)
 
-    if add_footer:
-        ci_prompt += "- **Footer:** Include subtle watermark text at the bottom center: `'MinebeaMitsumi Confidential'`.\n"
+# ---------------------------------------------------------
+# 6. ประมวลผล Master Prompt Text
+# ---------------------------------------------------------
+style_info = selected_style_dict[selected_style_label]
 
-    ci_prompt += "- **Color Palette:** Primary corporate colors (Deep Blue, Accent Red, White Background).\n"
+if "Top-Right" in logo_pos:
+    pos_text = "**Top-Right Corner**"
+elif "Top-Left" in logo_pos:
+    pos_text = "**Top-Left Corner**"
+else:
+    pos_text = "**Bottom-Right Corner**"
 
-    # Combine All Parts into Master Prompt
-    final_master_prompt = role_prompt + task_prompt + style_prompt + ci_prompt
+if "Compact" in logo_size:
+    size_text = "in a compact and non-intrusive size"
+elif "Medium" in logo_size:
+    size_text = "in a standard size"
+else:
+    size_text = "in a large and prominent size"
 
-    # Display Master Prompt in Code Block
-    st.code(final_master_prompt, language="markdown")
+topic_prompt = topic if topic.strip() else "[Insert Topic]"
 
-    st.success("💡 **วิธีใช้งาน:** คัดลอก Prompt ด้านบนนี้ ไปเปิดหน้า NotebookLM แล้ววาง (Paste) ลงในช่องสร้าง Infographic , Slide Deck  ได้ทันที!")
+prompt_text = f"""You are an expert Visual Director, Screenwriter, and Graphic Designer.
+
+Please generate a compelling, professional infographic based on the uploaded sources regarding: '{topic_prompt}'.
+
+**Visual Staging ({style_info['name_en']}):**
+- {style_info['desc']}
+
+**Corporate Branding Guidelines:**"""
+
+if use_logo:
+    prompt_text += f"""
+- **Logo Placement & Design:** Place the official 'MinebeaMitsumi' corporate logo at the {pos_text} {size_text}.
+  - **Logo Structure (Two Lines):**
+    1. **Top Line:** Bold, italicized deep-blue text reading **'MinebeaMitsumi'**.
+    2. **Bottom Line (Tagline):** Smaller red and blue italicized text directly underneath reading **'Passion to Create Value through Difference'**."""
+
+if use_header_line:
+    prompt_text += "\n- **Header Line:** Include a thin horizontal **Red and Blue corporate accent line** right below the header."
+
+if use_footer:
+    prompt_text += "\n- **Footer:** Include subtle watermark text at the bottom center: `'MinebeaMitsumi Confidential'`."
+
+prompt_text += "\n- **Color Application:** Apply primary corporate colors (Deep Blue, Accent Red) strictly to the branding elements, headers, and key callout highlights, while preserving the authentic artistic color scheme and atmospheric lighting of the selected Visual Staging."
+
+# ---------------------------------------------------------
+# 7. ฝั่งขวา: Preview & Copy Prompt
+# ---------------------------------------------------------
+with col2:
+    st.subheader("🖥️ 2. Visual Preview & Master Prompt")
+
+    st.markdown(f"**👁️‍🗨️ ตัวอย่างผลลัพธ์สไตล์: {style_info['name_en']}**")
+    st.caption("📌 *หมายเหตุ: ภาพตัวอย่างอ้างอิงจากตำแหน่งโลโก้ขวาบน (Top-Right) และขนาด Compact เป็นหลัก*")
+
+    try:
+        st.image(style_info["image"], use_container_width=True)
+    except Exception:
+        st.info("💡 ระบบกำลังดึงภาพตัวอย่างสไตล์นี้...")
+
+    st.markdown("---")
+
+    st.markdown("#### ⚡ คัดลอก Master Prompt ไปใช้งาน")
+
+    st_copy_to_clipboard(
+        prompt_text,
+        before_copy_label="⚡ คัดลอก Master Prompt",
+        after_copy_label="✅ คัดลอกเรียบร้อยแล้ว! นำไป Paste ใน NotebookLM ได้ทันที"
+    )
