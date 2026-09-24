@@ -8,35 +8,41 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Custom CSS: ซ่อน UI เดิม และซ่อน Viewer Badges/Icons มุมขวาล่างอย่างเด็ดขาด
+# 2. Custom CSS: ซ่อน UI เดิม และซ่อน Hosted with Streamlit Badge อย่างเด็ดขาด
 hide_and_custom_style = """
     <style>
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stAppDeployButton {display:none;}
+    /* ซ่อน Streamlit UI หลัก */
+    #MainMenu {visibility: hidden !important;}
+    header {visibility: hidden !important;}
+    footer {visibility: hidden !important;}
+    .stAppDeployButton {display: none !important;}
 
-    /* ซ่อน Streamlit Community Watermark / Crown & Mascot Badges ขวาล่าง */
-    [data-testid="stStatusWidget"] {display: none !important;}
-    [data-testid="stDecoration"] {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-
-    /* สั่งซ่อน Element ทุกตัวที่อยู่ลอยขวาล่างยกเว้น Developer Credit */
+    /* ซ่อน Hosted with Streamlit Badge / Mascot / Crown ลอยขวาล่างทุกรูปแบบ */
+    [data-testid="stStatusWidget"],
+    [data-testid="stDecoration"],
+    [data-testid="stToolbar"],
+    .stAppViewBlockContainer + div,
     div[class*="viewerBadge"],
     div[class*="styles_viewerBadge"],
     a[class*="viewerBadge"],
-    .stApp > iframe,
-    iframe[title="streamlit_app"] {
+    a[href*="streamlit.io/cloud"],
+    a[href*="streamlit.app"],
+    div[data-aria-clear="true"],
+    .stApp > div:last-child > div:last-child {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* ซ่อน Container ลอยด้านล่างขวาของเซิร์ฟเวอร์ Streamlit */
+    div[style*="position: fixed"][style*="bottom: 0"],
+    div[style*="position: fixed"][style*="right: 0"],
+    div[style*="z-index: 999999"] {
         display: none !important;
     }
 
-    /* ครอบซ่อน Container ลอยล่างขวาของระบบ Streamlit */
-    div[data-testid="stActionButtonIcon"] {display: none !important;}
-    div[style*="position: fixed"][style*="bottom"] {
-        display: none !important;
-    }
-
-    /* ดึงเฉพาะ Developer Credit ของเราให้แสดงผลลอยขวาล่างตามปกติ */
+    /* บังคับแสดงเฉพาะ Developer Credit ของเรา */
     .developer-credit {
         position: fixed !important;
         bottom: 12px !important;
@@ -48,11 +54,11 @@ hide_and_custom_style = """
         padding: 5px 14px !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
-        z-index: 999999 !important;
+        z-index: 9999999 !important;
         display: block !important;
     }
 
-    /* ลดระยะเว้นขอบบนของหน้าเว็บให้กระชับขึ้น */
+    /* ระยะเว้นขอบบน */
     .block-container {
         padding-top: 1.5rem !important;
         padding-bottom: 3rem !important;
