@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from st_copy_to_clipboard import st_copy_to_clipboard
 
 # 1. ตั้งค่าหน้าตาของ Streamlit App และใส่ favicon.png
@@ -8,28 +9,15 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Custom CSS: ซ่อน UI เดิมอย่างปลอดภัย ไม่กระทบการแสดงผลหลักของเว็บ
+# 2. Custom CSS สำหรับซ่อน UI หลัก และจัดทรงเว็บ
 hide_and_custom_style = """
     <style>
-    /* ซ่อน Streamlit UI หลัก */
     #MainMenu {visibility: hidden !important;}
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stAppDeployButton {display: none !important;}
 
-    /* ซ่อน Streamlit Community Toolbar & Status Widget */
-    [data-testid="stStatusWidget"] {display: none !important;}
-    [data-testid="stDecoration"] {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
-
-    /* ซ่อน Viewer Badges โดยตรง */
-    div[class*="viewerBadge"],
-    a[class*="viewerBadge"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
-
-    /* บังคับแสดงเฉพาะ Developer Credit ของเรา */
+    /* ล็อกความสวยงามของ Developer Credit ขวาล่าง */
     .developer-credit {
         position: fixed !important;
         bottom: 12px !important;
@@ -41,7 +29,7 @@ hide_and_custom_style = """
         padding: 5px 14px !important;
         border-radius: 12px !important;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
-        z-index: 99999 !important;
+        z-index: 9999999 !important;
         display: block !important;
     }
 
@@ -53,6 +41,32 @@ hide_and_custom_style = """
     </style>
 """
 st.markdown(hide_and_custom_style, unsafe_allow_html=True)
+
+# 3. JavaScript สั่งลบ Badge / Watermark ขวาล่างของ Streamlit ออกถาวร
+js_remove_badges = """
+    <script>
+    function removeStreamlitBadges() {
+        // ค้นหา Element ลอยขวาล่างของ Streamlit ในทุกๆ Window
+        const targetSelectors = [
+            'div[class*="viewerBadge"]',
+            'a[class*="viewerBadge"]',
+            'a[href*="streamlit.io/cloud"]',
+            'a[href*="streamlit.app"]',
+            '[data-testid="stStatusWidget"]',
+            '[data-testid="stDecoration"]'
+        ];
+
+        targetSelectors.forEach(selector => {
+            const elements = window.parent.document.querySelectorAll(selector);
+            elements.forEach(el => el.remove());
+        });
+    }
+
+    // รันสคริปต์วนลูปสั้นๆ เพื่อตรวจจับและลบไอคอนทันทีที่มันถูกฉีดเข้ามา
+    setInterval(removeStreamlitBadges, 300);
+    </script>
+"""
+components.html(js_remove_badges, height=0, width=0)
 
 # ---------------------------------------------------------
 # 💡 ฟังก์ชันระบบ Pop-up (Modal Dialogs)
@@ -83,7 +97,7 @@ def show_topic_guide_modal():
     """)
 
 # ---------------------------------------------------------
-# 3. ส่วน Header แสดงโลโก้บริษัท, ปุ่ม Help (?) และ Credit
+# 4. ส่วน Header แสดงโลโก้บริษัท, ปุ่ม Help (?) และ Credit
 # ---------------------------------------------------------
 header_col1, header_col2 = st.columns([0.60, 0.40])
 
@@ -126,7 +140,7 @@ with title_col2:
 st.caption("ระบบกำหนดค่าโครงสร้าง Master Prompt และการคุมธีม Corporate Identity (CI) สำหรับ NotebookLM")
 
 # ---------------------------------------------------------
-# 4. Dictionary เก็บข้อมูลสไตล์
+# 5. Dictionary เก็บข้อมูลสไตล์
 # ---------------------------------------------------------
 CUSTOM_STYLES = {
     "Corporate Executive (เรียบหรู, มินิมอล, เน้นข้อมูล)": {
@@ -220,7 +234,7 @@ STANDARD_STYLES = {
 }
 
 # ---------------------------------------------------------
-# 5. UI Layout & Form Inputs
+# 6. UI Layout & Form Inputs
 # ---------------------------------------------------------
 col1, col2 = st.columns([1, 1], gap="large")
 
@@ -277,7 +291,7 @@ with col1:
     use_footer = st.checkbox("ใส่ Footer Text ('MinebeaMitsumi Confidential')", value=True)
 
 # ---------------------------------------------------------
-# 6. ประมวลผล Master Prompt Text
+# 7. ประมวลผล Master Prompt Text
 # ---------------------------------------------------------
 style_info = selected_style_dict[selected_style_label]
 
@@ -322,7 +336,7 @@ if use_footer:
 prompt_text += "\n- **Color Application:** Apply primary corporate colors (Deep Blue, Accent Red) strictly to the branding elements, headers, and key callout highlights, while preserving the authentic artistic color scheme and atmospheric lighting of the selected Visual Staging."
 
 # ---------------------------------------------------------
-# 7. ฝั่งขวา: Preview & Copy Prompt
+# 8. ฝั่งขวา: Preview & Copy Prompt
 # ---------------------------------------------------------
 with col2:
     st.subheader("🖥️ 2. Visual Preview & Master Prompt")
