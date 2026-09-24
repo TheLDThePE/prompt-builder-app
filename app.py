@@ -8,7 +8,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Custom CSS: ซ่อน UI เดิม, ซ่อน Viewer Badges/Icons มุมขวาล่าง, และปรับ Padding
+# 2. Custom CSS: ซ่อน UI เดิม และซ่อน Viewer Badges/Icons มุมขวาล่างอย่างเด็ดขาด
 hide_and_custom_style = """
     <style>
     #MainMenu {visibility: hidden;}
@@ -18,33 +18,44 @@ hide_and_custom_style = """
 
     /* ซ่อน Streamlit Community Watermark / Crown & Mascot Badges ขวาล่าง */
     [data-testid="stStatusWidget"] {display: none !important;}
-    .viewerBadge_container__1A53N,
-    .viewerBadge_link__1S137,
-    [data-testid="stDecoration"],
-    [data-testid="stToolbar"],
-    div[class*="viewerBadge"] {
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
+
+    /* สั่งซ่อน Element ทุกตัวที่อยู่ลอยขวาล่างยกเว้น Developer Credit */
+    div[class*="viewerBadge"],
+    div[class*="styles_viewerBadge"],
+    a[class*="viewerBadge"],
+    .stApp > iframe,
+    iframe[title="streamlit_app"] {
         display: none !important;
-        visibility: hidden !important;
+    }
+
+    /* ครอบซ่อน Container ลอยล่างขวาของระบบ Streamlit */
+    div[data-testid="stActionButtonIcon"] {display: none !important;}
+    div[style*="position: fixed"][style*="bottom"] {
+        display: none !important;
+    }
+
+    /* ดึงเฉพาะ Developer Credit ของเราให้แสดงผลลอยขวาล่างตามปกติ */
+    .developer-credit {
+        position: fixed !important;
+        bottom: 12px !important;
+        right: 20px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        color: #555555 !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        padding: 5px 14px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+        z-index: 999999 !important;
+        display: block !important;
     }
 
     /* ลดระยะเว้นขอบบนของหน้าเว็บให้กระชับขึ้น */
     .block-container {
         padding-top: 1.5rem !important;
         padding-bottom: 3rem !important;
-    }
-
-    .developer-credit {
-        position: fixed;
-        bottom: 12px;
-        right: 20px;
-        font-size: 13px;
-        font-weight: 500;
-        color: #555555;
-        background-color: rgba(255, 255, 255, 0.9);
-        padding: 5px 14px;
-        border-radius: 12px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        z-index: 9999;
     }
     </style>
 """
