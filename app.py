@@ -1,5 +1,5 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import streamlit.components.v1 as components   # ← จุดที่ 1: เพิ่มการ import components
 from st_copy_to_clipboard import st_copy_to_clipboard
 
 # 1. ตั้งค่าหน้าตาของ Streamlit App และใส่ favicon.png
@@ -9,31 +9,21 @@ st.set_page_config(
     layout="wide"
 )
 
-# 2. Custom CSS สำหรับซ่อน UI หลัก และจัดทรงเว็บ
+# 2. Custom CSS: ซ่อน Streamlit UI ภายในแอป และปรับ Padding
 hide_and_custom_style = """
     <style>
+    /* ซ่อน Streamlit UI Element หลักภายในแอป */
     #MainMenu {visibility: hidden !important;}
     header {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stAppDeployButton {display: none !important;}
 
-    /* ล็อกความสวยงามของ Developer Credit ขวาล่าง */
-    .developer-credit {
-        position: fixed !important;
-        bottom: 12px !important;
-        right: 20px !important;
-        font-size: 13px !important;
-        font-weight: 500 !important;
-        color: #555555 !important;
-        background-color: rgba(255, 255, 255, 0.95) !important;
-        padding: 5px 14px !important;
-        border-radius: 12px !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
-        z-index: 9999999 !important;
-        display: block !important;
-    }
+    /* ซ่อน Status Widget และ Toolbar ภายใน iframe */
+    [data-testid="stStatusWidget"] {display: none !important;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
 
-    /* ระยะเว้นขอบบน */
+    /* ระยะเว้นขอบบนของหน้าเว็บให้กระชับขึ้น */
     .block-container {
         padding-top: 1.5rem !important;
         padding-bottom: 3rem !important;
@@ -42,29 +32,59 @@ hide_and_custom_style = """
 """
 st.markdown(hide_and_custom_style, unsafe_allow_html=True)
 
-# 3. JavaScript สั่งลบ Badge / Watermark ขวาล่างของ Streamlit ออกถาวร
+# ← จุดที่ 2: บล็อก JavaScript สำหรับพยายามซ่อน Badge / Avatar มุมขวาล่าง
 js_remove_badges = """
-    <script>
-    function removeStreamlitBadges() {
-        // ค้นหา Element ลอยขวาล่างของ Streamlit ในทุกๆ Window
-        const targetSelectors = [
-            'div[class*="viewerBadge"]',
-            'a[class*="viewerBadge"]',
-            'a[href*="streamlit.io/cloud"]',
-            'a[href*="streamlit.app"]',
-            '[data-testid="stStatusWidget"]',
-            '[data-testid="stDecoration"]'
-        ];
+<script>
+(function () {
+  const SELECTORS = [
+    '[class*="viewerBadge"]',
+    '[class*="_profileContainer"]',
+    '[class*="_profilePreview"]',
+    '[data-testid="appCreatorAvatar"]',
+    'a[href*="streamlit.io/cloud"]',
+    'a[href*="share.streamlit.io"]'
+  ];
 
-        targetSelectors.forEach(selector => {
-            const elements = window.parent.document.querySelectorAll(selector);
-            elements.forEach(el => el.remove());
-        });
+  function getDocs() {
+    const docs = [];
+    let w = window;
+    for (let i = 0; i < 4; i++) {
+      try {
+        const p = w.parent;
+        docs.push(p.document);
+        if (p === w) break;
+        w = p;
+      } catch (e) { break; }
     }
+    return docs;
+  }
 
-    // รันสคริปต์วนลูปสั้นๆ เพื่อตรวจจับและลบไอคอนทันทีที่มันถูกฉีดเข้ามา
-    setInterval(removeStreamlitBadges, 300);
-    </script>
+  function hideFloatingBottomRight(doc) {
+    const win = doc.defaultView;
+    const vw = win.innerWidth, vh = win.innerHeight;
+    doc.querySelectorAll('div, a, button').forEach(el => {
+      if (el.querySelector('iframe') || el.tagName === 'IFRAME') return;
+      if (win.getComputedStyle(el).position !== 'fixed') return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.width < 320 && r.height < 120 &&
+          r.right > vw - 320 && r.bottom > vh - 150) {
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
+  }
+
+  function cleanup() {
+    getDocs().forEach((doc, idx) => {
+      SELECTORS.forEach(sel => doc.querySelectorAll(sel).forEach(el =>
+        el.style.setProperty('display', 'none', 'important')));
+      if (idx >= 1) hideFloatingBottomRight(doc);
+    });
+  }
+
+  cleanup();
+  setInterval(cleanup, 500);
+})();
+</script>
 """
 components.html(js_remove_badges, height=0, width=0)
 
@@ -97,7 +117,7 @@ def show_topic_guide_modal():
     """)
 
 # ---------------------------------------------------------
-# 4. ส่วน Header แสดงโลโก้บริษัท, ปุ่ม Help (?) และ Credit
+# 3. ส่วน Header แสดงโลโก้บริษัท, ปุ่ม Help (?) และ Credit
 # ---------------------------------------------------------
 header_col1, header_col2 = st.columns([0.60, 0.40])
 
@@ -140,7 +160,7 @@ with title_col2:
 st.caption("ระบบกำหนดค่าโครงสร้าง Master Prompt และการคุมธีม Corporate Identity (CI) สำหรับ NotebookLM")
 
 # ---------------------------------------------------------
-# 5. Dictionary เก็บข้อมูลสไตล์
+# 4. Dictionary เก็บข้อมูลสไตล์
 # ---------------------------------------------------------
 CUSTOM_STYLES = {
     "Corporate Executive (เรียบหรู, มินิมอล, เน้นข้อมูล)": {
@@ -234,7 +254,7 @@ STANDARD_STYLES = {
 }
 
 # ---------------------------------------------------------
-# 6. UI Layout & Form Inputs
+# 5. UI Layout & Form Inputs
 # ---------------------------------------------------------
 col1, col2 = st.columns([1, 1], gap="large")
 
@@ -291,7 +311,7 @@ with col1:
     use_footer = st.checkbox("ใส่ Footer Text ('MinebeaMitsumi Confidential')", value=True)
 
 # ---------------------------------------------------------
-# 7. ประมวลผล Master Prompt Text
+# 6. ประมวลผล Master Prompt Text
 # ---------------------------------------------------------
 style_info = selected_style_dict[selected_style_label]
 
@@ -336,7 +356,7 @@ if use_footer:
 prompt_text += "\n- **Color Application:** Apply primary corporate colors (Deep Blue, Accent Red) strictly to the branding elements, headers, and key callout highlights, while preserving the authentic artistic color scheme and atmospheric lighting of the selected Visual Staging."
 
 # ---------------------------------------------------------
-# 8. ฝั่งขวา: Preview & Copy Prompt
+# 7. ฝั่งขวา: Preview & Copy Prompt
 # ---------------------------------------------------------
 with col2:
     st.subheader("🖥️ 2. Visual Preview & Master Prompt")
