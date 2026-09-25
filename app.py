@@ -1,4 +1,5 @@
 import os
+import base64
 import streamlit as st
 import streamlit.components.v1 as components
 from st_copy_to_clipboard import st_copy_to_clipboard
@@ -286,6 +287,22 @@ STANDARD_STYLES = {
     }
 }
 
+def preview_path(img):
+    """ใช้ภาพย่อความละเอียดต่ำ (previews/*.jpg) เพื่อโหลดเร็ว
+    ถ้าไม่มีไฟล์ภาพย่อ (เช่นยังไม่ได้อัปโหลด) จะถอยไปใช้ภาพต้นฉบับแทนอัตโนมัติ"""
+    p = f"previews/{img.rsplit('.', 1)[0]}.jpg"
+    return p if os.path.exists(p) else img
+
+
+@st.cache_data(show_spinner=False)
+def img_data_uri(path):
+    """อ่านไฟล์ภาพแล้วแปลงเป็น base64 ครั้งเดียว แคชไว้ตาม path
+    (เดิมสร้างฟังก์ชัน lambda ใหม่ + cache ใหม่ทุกรอบที่สคริปต์รัน ทำให้แคชไม่ช่วยอะไร)"""
+    with open(path, "rb") as f:
+        data = base64.b64encode(f.read()).decode()
+    mime = "image/jpeg" if path.endswith(".jpg") else "image/png"
+    return f"data:{mime};base64,{data}"
+
 # ---------------------------------------------------------
 # 7. Form Inputs & Main Layout
 # ---------------------------------------------------------
@@ -441,13 +458,10 @@ with col2:
 
     st.caption("📌 *หมายเหตุ: ภาพตัวอย่างอ้างอิงจากตำแหน่งโลโก้ขวาบน (Top-Right) และขนาด Compact เป็นหลัก*")
 
-    # แสดงภาพในกรอบพรีวิวล็อกสัดส่วน (pv class)
+    # แสดงภาพในกรอบพรีวิวล็อกสัดส่วน (pv class) — ใช้ภาพย่อเพื่อความเร็ว
     try:
-        img_path = style_info["image"]
-        if os.path.exists(img_path):
-            st.markdown(f'<div class="pv"><img src="data:image/png;base64,{st.cache_data(lambda p: __import__("base64").b64encode(open(p, "rb").read()).decode())(img_path)}"></div>', unsafe_allow_html=True)
-        else:
-            st.info("💡 ระบบกำลังดึงภาพตัวอย่างสไตล์นี้...")
+        uri = img_data_uri(preview_path(style_info["image"]))
+        st.markdown(f'<div class="pv"><img src="{uri}" alt="{style_info["name_en"]}"></div>', unsafe_allow_html=True)
     except Exception:
         st.info("💡 ระบบกำลังดึงภาพตัวอย่างสไตล์นี้...")
 
