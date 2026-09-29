@@ -22,6 +22,63 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
+# 1.0 JavaScript ซ่อน Badge / Watermark มุมขวาล่าง (ใช้ทั้งหน้า Login และหน้าแอป)
+# ---------------------------------------------------------
+js_remove_badges = """
+<script>
+(function () {
+  const SELECTORS = [
+    '[class*="viewerBadge"]',
+    '[class*="_profileContainer"]',
+    '[class*="_profilePreview"]',
+    '[data-testid="appCreatorAvatar"]',
+    'a[href*="streamlit.io/cloud"]',
+    'a[href*="share.streamlit.io"]'
+  ];
+
+  function getDocs() {
+    const docs = [];
+    let w = window;
+    for (let i = 0; i < 4; i++) {
+      try {
+        const p = w.parent;
+        docs.push(p.document);
+        if (p === w) break;
+        w = p;
+      } catch (e) { break; }
+    }
+    return docs;
+  }
+
+  function hideFloatingBottomRight(doc) {
+    const win = doc.defaultView;
+    const vw = win.innerWidth, vh = win.innerHeight;
+    doc.querySelectorAll('div, a, button').forEach(el => {
+      if (el.querySelector('iframe') || el.tagName === 'IFRAME') return;
+      if (win.getComputedStyle(el).position !== 'fixed') return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.width < 320 && r.height < 120 &&
+          r.right > vw - 320 && r.bottom > vh - 150) {
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
+  }
+
+  function cleanup() {
+    getDocs().forEach((doc, idx) => {
+      SELECTORS.forEach(sel => doc.querySelectorAll(sel).forEach(el =>
+        el.style.setProperty('display', 'none', 'important')));
+      if (idx >= 1) hideFloatingBottomRight(doc);
+    });
+  }
+
+  cleanup();
+  setInterval(cleanup, 500);
+})();
+</script>
+"""
+
+# ---------------------------------------------------------
 # 1.1 Login Page Style (หน้าแรกก่อนเข้าสู่ระบบ)
 # ---------------------------------------------------------
 LOGIN_CSS = """
@@ -31,7 +88,14 @@ LOGIN_CSS = """
 [data-testid="stStatusWidget"] {display: none !important;}
 
 .stApp { background: linear-gradient(135deg, #EAF1FB 0%, #FFFFFF 55%, #FDECEE 100%); }
-.block-container { max-width: 520px !important; padding-top: 8vh !important; }
+.block-container {
+    max-width: 600px !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-top: 8vh !important;
+}
 
 /* การ์ด Login */
 .st-key-login_card {
@@ -41,8 +105,8 @@ LOGIN_CSS = """
     padding: 2rem 2rem 1.5rem 2rem !important;
     box-shadow: 0 10px 30px rgba(18, 48, 90, 0.10);
 }
-.login-title { font-size: 1.6rem; font-weight: 700; color: #12305A; text-align: center; margin: 0.5rem 0 0.2rem 0; }
-.login-sub   { font-size: 0.95rem; color: #5B6B82; text-align: center; margin-bottom: 1.2rem; line-height: 1.6; }
+.login-title { font-size: 1.6rem; font-weight: 700; color: #12305A; text-align: center; margin: 0.5rem 0 0.2rem 0; white-space: nowrap; }
+.login-sub   { font-size: 0.9rem; color: #5B6B82; text-align: center; margin-bottom: 1.2rem; line-height: 1.6; }
 .login-badge { text-align: center; margin-top: 0.9rem; }
 .login-badge span { background: #EBF3FE; color: #1E56A0; padding: 3px 12px; border-radius: 12px; font-weight: 600; font-size: 12px; }
 .login-foot  { text-align: center; font-size: 11px; color: #7A8799; margin-top: 1rem; }
@@ -68,6 +132,7 @@ LOGIN_CSS = """
 # ---------------------------------------------------------
 if not st.user.is_logged_in:
     st.markdown(LOGIN_CSS, unsafe_allow_html=True)
+    components.html(js_remove_badges, height=0, width=0)
 
     with st.container(border=True, key="login_card"):
         if os.path.exists("logo.png"):
@@ -175,59 +240,6 @@ st.markdown(hide_and_custom_style, unsafe_allow_html=True)
 # ---------------------------------------------------------
 # 3. JavaScript ซ่อน Badge / Watermark มุมขวาล่าง
 # ---------------------------------------------------------
-js_remove_badges = """
-<script>
-(function () {
-  const SELECTORS = [
-    '[class*="viewerBadge"]',
-    '[class*="_profileContainer"]',
-    '[class*="_profilePreview"]',
-    '[data-testid="appCreatorAvatar"]',
-    'a[href*="streamlit.io/cloud"]',
-    'a[href*="share.streamlit.io"]'
-  ];
-
-  function getDocs() {
-    const docs = [];
-    let w = window;
-    for (let i = 0; i < 4; i++) {
-      try {
-        const p = w.parent;
-        docs.push(p.document);
-        if (p === w) break;
-        w = p;
-      } catch (e) { break; }
-    }
-    return docs;
-  }
-
-  function hideFloatingBottomRight(doc) {
-    const win = doc.defaultView;
-    const vw = win.innerWidth, vh = win.innerHeight;
-    doc.querySelectorAll('div, a, button').forEach(el => {
-      if (el.querySelector('iframe') || el.tagName === 'IFRAME') return;
-      if (win.getComputedStyle(el).position !== 'fixed') return;
-      const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.width < 320 && r.height < 120 &&
-          r.right > vw - 320 && r.bottom > vh - 150) {
-        el.style.setProperty('display', 'none', 'important');
-      }
-    });
-  }
-
-  function cleanup() {
-    getDocs().forEach((doc, idx) => {
-      SELECTORS.forEach(sel => doc.querySelectorAll(sel).forEach(el =>
-        el.style.setProperty('display', 'none', 'important')));
-      if (idx >= 1) hideFloatingBottomRight(doc);
-    });
-  }
-
-  cleanup();
-  setInterval(cleanup, 500);
-})();
-</script>
-"""
 components.html(js_remove_badges, height=0, width=0)
 
 # ---------------------------------------------------------
