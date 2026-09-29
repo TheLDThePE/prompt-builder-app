@@ -1,8 +1,16 @@
 import os
 import base64
+import logging
+from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
-from st_copy_to_clipboard import st_copy_to_clipboard
+from supabase import create_client
+
+logger = logging.getLogger(__name__)
+copy_button_component = components.declare_component(
+    "prompt_builder_copy_button",
+    path=str(Path(__file__).parent / "copy_component"),
+)
 
 # ---------------------------------------------------------
 # 1. Page Configuration
@@ -12,6 +20,55 @@ st.set_page_config(
     page_icon="favicon.png",
     layout="wide"
 )
+
+# ---------------------------------------------------------
+# 1. Google Login + Supabase Usage Tracking
+# ---------------------------------------------------------
+if not st.user.is_logged_in:
+    st.title("NotebookLM Prompt Builder")
+    st.write("กรุณาเข้าสู่ระบบด้วย Google เพื่อใช้งานแอป")
+    st.button("เข้าสู่ระบบด้วย Google", on_click=st.login)
+    st.stop()
+
+google_sub = st.user.get("sub")
+user_email = st.user.get("email")
+if not google_sub or not user_email:
+    st.error("ไม่พบรหัสผู้ใช้หรืออีเมลจาก Google กรุณาตรวจสอบการตั้งค่า OAuth")
+    st.stop()
+
+
+@st.cache_resource
+def get_supabase_client():
+    config = st.secrets["supabase"]
+    return create_client(config["url"], config["service_role_key"])
+
+
+try:
+    supabase = get_supabase_client()
+except Exception:
+    logger.exception("Could not initialize the Supabase client")
+    st.error(
+        "ยังเชื่อมต่อฐานข้อมูลไม่ได้ กรุณาตั้งค่า [supabase] ใน "
+        "Streamlit Cloud → Settings → Secrets ให้ครบก่อน"
+    )
+    st.stop()
+
+# Streamlit reruns the script after interactions. Count once per app session.
+if not st.session_state.get("_login_recorded", False):
+    try:
+        supabase.rpc(
+            "record_app_login",
+            {"p_google_sub": google_sub, "p_email": user_email},
+        ).execute()
+        st.session_state["_login_recorded"] = True
+    except Exception:
+        logger.exception("Could not record an app login")
+        st.error("บันทึกข้อมูลการเข้าใช้ไม่สำเร็จ กรุณาลองโหลดหน้าใหม่")
+        st.stop()
+
+with st.sidebar:
+    st.caption(f"เข้าสู่ระบบ: {user_email}")
+    st.button("ออกจากระบบ", on_click=st.logout, use_container_width=True)
 
 # ---------------------------------------------------------
 # 2. Custom CSS (ดึงโทนสี MinebeaMitsumi + ล็อก Layout กรอบภาพจาก v3)
@@ -429,22 +486,32 @@ prompt_text += "\n- **Color Application:** Apply primary corporate colors (Deep 
 with col2:
     st.subheader(":material/content_copy: 2. Visual Preview & Master Prompt")
 
-    # ปุ่ม Copy Prompt พร้อมการจัดการ Exception
-    copy_kw = dict(
-        before_copy_label="⚡ คัดลอก Master Prompt",
-        after_copy_label="✅ คัดลอกเรียบร้อยแล้ว! นำไป Paste ใน NotebookLM ได้ทันที"
-    )
-    # หมายเหตุ: ต้องใช้ key ที่เปลี่ยนตามเนื้อหา prompt_text เสมอ
-    # เพราะตัวคอมโพเนนต์ st_copy_to_clipboard มีบั๊ก - JS ฝั่ง frontend
-    # จะจำค่า text แค่ตอน mount ครั้งแรกเท่านั้น (มี guard "if (!window.rendered)")
-    # ถ้าใช้ key คงที่ จะคัดลอกค่าของ "ครั้งแรกที่โหลดหน้า" ซ้ำตลอดไป
-    # การให้ key เปลี่ยนตาม hash ของ prompt_text จะบังคับให้ Streamlit สร้าง
-    # component/iframe ใหม่ทุกครั้งที่เนื้อหาจริงเปลี่ยน จึงได้ค่าล่าสุดเสมอ
+    # Track an actual successful clipboard write; the previous third-party
+    # component did not return click events to Python.
     copy_key = f"copy_prompt_{abs(hash(prompt_text))}"
-    try:
-        st_copy_to_clipboard(prompt_text, key=copy_key, **copy_kw)
-    except TypeError:
-        st_copy_to_clipboard(prompt_text, **copy_kw)
+    copy_event = copy_button_component(
+        text=prompt_text,
+        before_copy_label="⚡ คัดลอก Master Prompt",
+        after_copy_label="✅ คัดลอกเรียบร้อยแล้ว! นำไป Paste ใน NotebookLM ได้ทันที",
+        key=copy_key,
+        default=None,
+    )
+
+    if isinstance(copy_event, dict) and copy_event.get("copied"):
+        event_id = copy_event.get("event_id")
+        if event_id and event_id != st.session_state.get("_last_copy_event_id"):
+            try:
+                supabase.rpc(
+                    "record_prompt_copy",
+                    {
+                        "p_google_sub": google_sub,
+                        "p_client_event_id": event_id,
+                    },
+                ).execute()
+                st.session_state["_last_copy_event_id"] = event_id
+            except Exception:
+                logger.exception("Could not record a prompt copy event")
+                st.warning("คัดลอก Prompt แล้ว แต่บันทึกสถิติไม่สำเร็จ")
 
     st.markdown("---")
 
