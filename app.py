@@ -22,12 +22,72 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------
-# 1. Google Login + Supabase Usage Tracking
+# 1.1 Login Page Style (หน้าแรกก่อนเข้าสู่ระบบ)
+# ---------------------------------------------------------
+LOGIN_CSS = """
+<style>
+#MainMenu, header, footer {visibility: hidden !important;}
+.stAppDeployButton, [data-testid="stToolbar"], [data-testid="stDecoration"],
+[data-testid="stStatusWidget"] {display: none !important;}
+
+.stApp { background: linear-gradient(135deg, #EAF1FB 0%, #FFFFFF 55%, #FDECEE 100%); }
+.block-container { max-width: 520px !important; padding-top: 8vh !important; }
+
+/* การ์ด Login */
+.st-key-login_card {
+    background: #FFFFFF;
+    border: 1px solid #E0E7F1 !important;
+    border-radius: 16px !important;
+    padding: 2rem 2rem 1.5rem 2rem !important;
+    box-shadow: 0 10px 30px rgba(18, 48, 90, 0.10);
+}
+.login-title { font-size: 1.6rem; font-weight: 700; color: #12305A; text-align: center; margin: 0.5rem 0 0.2rem 0; }
+.login-sub   { font-size: 0.95rem; color: #5B6B82; text-align: center; margin-bottom: 1.2rem; line-height: 1.6; }
+.login-badge { text-align: center; margin-top: 0.9rem; }
+.login-badge span { background: #EBF3FE; color: #1E56A0; padding: 3px 12px; border-radius: 12px; font-weight: 600; font-size: 12px; }
+.login-foot  { text-align: center; font-size: 11px; color: #7A8799; margin-top: 1rem; }
+
+/* เส้นแบรนด์องค์กร (น้ำเงินยาว + แดงสั้น) */
+.brandline { display: flex; height: 3px; margin: 1rem 0 1.2rem 0; }
+.brandline span:first-child { flex: 1; background: #1E56A0; }
+.brandline span:last-child  { flex: 0 0 18%; background: #D0202E; }
+
+/* ปุ่มล็อกอิน */
+.st-key-login_card button {
+    background: #1E56A0 !important; color: #FFFFFF !important;
+    border: none !important; border-radius: 10px !important;
+    padding: 0.6rem 1rem !important; font-weight: 600 !important;
+    transition: all .15s ease;
+}
+.st-key-login_card button:hover { background: #12305A !important; transform: translateY(-1px); }
+</style>
+"""
+
+# ---------------------------------------------------------
+# 1.2 Google Login + Supabase Usage Tracking
 # ---------------------------------------------------------
 if not st.user.is_logged_in:
-    st.title("NotebookLM Prompt Builder")
-    st.write("กรุณาเข้าสู่ระบบด้วย Google เพื่อใช้งานแอป")
-    st.button("เข้าสู่ระบบด้วย Google", on_click=st.login)
+    st.markdown(LOGIN_CSS, unsafe_allow_html=True)
+
+    with st.container(border=True, key="login_card"):
+        if os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
+        st.markdown('<div class="brandline"><span></span><span></span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-title">NotebookLM Prompt Builder</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="login-sub">เครื่องมือสร้าง Master Prompt สำหรับ Infographic<br>'
+            'ตามมาตรฐาน Corporate Identity ของ MinebeaMitsumi</div>',
+            unsafe_allow_html=True,
+        )
+        st.button(
+            "เข้าสู่ระบบด้วย Google",
+            icon=":material/login:",
+            on_click=st.login,
+            type="primary",
+            use_container_width=True,
+        )
+        st.markdown('<div class="login-badge"><span>🚀 Trial Version</span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-foot">© Developed by Suttichai K.</div>', unsafe_allow_html=True)
     st.stop()
 
 google_sub = st.user.get("sub")
